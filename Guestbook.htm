@@ -161,50 +161,73 @@
         <div id="entriesList" class="entries-grid"></div>
     </div>
 
-    <script>
-        window.onload = displayEntries;
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-        function addEntry() {
-            const name = document.getElementById('guestName').value;
-            const message = document.getElementById('guestMessage').value;
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);  
 
-            if (name === "" || message === "") {
-                alert("The Director needs your name and message!");
-                return;
-            }
+// PASTE YOUR FIREBASE CONFIG HERE
+  const firebaseConfig = {
+  apiKey: "AIzaSyAMQJ6c64BgWdNRMNY-wtMdQoIGcE2n7-Y",
+  authDomain: "adambirthday.firebaseapp.com",
+  databaseURL: "https://adambirthday-default-rtdb.firebaseio.com",
+  projectId: "adambirthday",
+  storageBucket: "adambirthday.firebasestorage.app",
+  messagingSenderId: "52484424752",
+  appId: "1:52484424752:web:dd6401e82e9696ff6359f5",
+  measurementId: "G-G7Q35RGYMM"
+  };
 
-            const entry = {
-                name: name,
-                message: message,
-                date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
-            };
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const messagesRef = ref(db, 'messages');
 
-            let entries = JSON.parse(localStorage.getItem('adamGuestbook')) || [];
-            entries.unshift(entry);
-            localStorage.setItem('adamGuestbook', JSON.stringify(entries));
+  // SUBMIT TO FIREBASE
+  window.addEntry = function() {
+    const name = document.getElementById('guestName').value;
+    const message = document.getElementById('guestMessage').value;
 
-            document.getElementById('guestName').value = "";
-            document.getElementById('guestMessage').value = "";
+    if (name === "" || message === "") {
+        alert("The Director needs your name and message!");
+        return;
+    }
 
-            displayEntries();
-        }
+    // Pushing to Firebase (Syncs to all devices instantly)
+    push(messagesRef, {
+        name: name,
+        message: message,
+        date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+    });
 
-        function displayEntries() {
-            const list = document.getElementById('entriesList');
-            const entries = JSON.parse(localStorage.getItem('adamGuestbook')) || [];
-            list.innerHTML = ''; 
+    document.getElementById('guestName').value = "";
+    document.getElementById('guestMessage').value = "";
+  };
 
-            entries.forEach(item => {
-                const card = document.createElement('div');
-                card.className = 'entry-card';
-                card.innerHTML = `
-                    <span class="entry-name">${item.name}</span>
-                    <p class="entry-text">${item.message}</p>
-                    <span class="entry-date">${item.date}</span>
-                `;
-                list.appendChild(card);
-            });
-        }
-    </script>
+  // LISTEN FOR LIVE UPDATES
+  onValue(messagesRef, (snapshot) => {
+    const data = snapshot.val();
+    const list = document.getElementById('entriesList');
+    list.innerHTML = ''; 
+
+    if (data) {
+        // Convert object to array and reverse so newest is at the top
+        const entries = Object.values(data).reverse();
+        entries.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'entry-card';
+            card.innerHTML = `
+                <span class="entry-name">${item.name}</span>
+                <p class="entry-text">${item.message}</p>
+                <span class="entry-date">${item.date}</span>
+            `;
+            list.appendChild(card);
+        });
+    }
+  });
+</script>
 </body>
 </html>
