@@ -176,87 +176,90 @@
         <div id="entriesList" class="entries-grid"></div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+<script>
+  // 1. YOUR CONFIG (Use your actual keys here)
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+    databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT_ID.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
 
-        // FIREBASE CONFIGURATION
-        const firebaseConfig = {
-            apiKey: "AIzaSyAMQJ6c64BgWdNRMNY-wtMdQoIGcE2n7-Y",
-            authDomain: "adambirthday.firebaseapp.com",
-            databaseURL: "https://adambirthday-default-rtdb.firebaseio.com",
-            projectId: "adambirthday",
-            storageBucket: "adambirthday.firebasestorage.app",
-            messagingSenderId: "52484424752",
-            appId: "1:52484424752:web:dd6401e82e9696ff6359f5",
-            measurementId: "G-G7Q35RGYMM"
-        };
+  // 2. INITIALIZE
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+  const messagesRef = db.ref('messages');
 
-        // INITIALIZE
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-        const messagesRef = ref(db, 'messages');
+  // 3. SUBMISSION LOGIC (Visible to the button)
+  function addEntry() {
+    const name = document.getElementById('guestName').value;
+    const message = document.getElementById('guestMessage').value;
 
-        let firstLoad = true;
-        let messageCount = 0;
+    if (!name || !message) {
+        alert("The Director needs your name and message!");
+        return;
+    }
 
-        // SUBMIT LOGIC
-        window.addEntry = function() {
-            const name = document.getElementById('guestName').value;
-            const message = document.getElementById('guestMessage').value;
+    messagesRef.push({
+        name: name,
+        message: message,
+        date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+    }).then(() => {
+        document.getElementById('guestName').value = "";
+        document.getElementById('guestMessage').value = "";
+    }).catch(err => {
+        console.error("Firebase Error:", err);
+        alert("Error: " + err.message);
+    });
+  }
 
-            if (name.trim() === "" || message.trim() === "") {
-                alert("Please include both your name and a message!");
-                return;
-            }
+  // 4. ADMIN & SYNC LOGIC
+  let adminMode = false;
+  function toggleAdmin() {
+    adminMode = !adminMode;
+    alert("Admin Mode: " + (adminMode ? "ON" : "OFF"));
+    renderMessages(window.lastData);
+  }
 
-            push(messagesRef, {
-                name: name,
-                message: message,
-                date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
-            });
+  function deleteMessage(key) {
+    if(confirm("Delete this fan review?")) {
+        db.ref('messages/' + key).remove();
+    }
+  }
 
-            document.getElementById('guestName').value = "";
-            document.getElementById('guestMessage').value = "";
-        };
+  // 5. REAL-TIME LISTENER
+  messagesRef.on('value', (snapshot) => {
+    const data = snapshot.val();
+    window.lastData = data;
+    renderMessages(data);
+  });
 
-        // LIVE LISTENER
-        onValue(messagesRef, (snapshot) => {
-            const data = snapshot.val();
-            const list = document.getElementById('entriesList');
-            list.innerHTML = ''; 
+  function renderMessages(data) {
+    const list = document.getElementById('entriesList');
+    list.innerHTML = ''; 
+    if (!data) return;
 
-            if (data) {
-                const entries = Object.values(data);
-                
-                // FIRE CONFETTI ON NEW POSTS
-                if (!firstLoad && entries.length > messageCount) {
-                    confetti({
-                        particleCount: 150,
-                        spread: 80,
-                        origin: { y: 0.6 },
-                        colors: ['#f1c40f', '#d40000', '#ffffff']
-                    });
-                }
-                
-                messageCount = entries.length;
-                firstLoad = false;
+    // Convert object to array and reverse for newest-first
+    const entries = Object.entries(data).reverse();
 
-                // RENDER CARDS (NEWEST AT TOP)
-                entries.reverse().forEach(item => {
-                    const card = document.createElement('div');
-                    card.className = 'entry-card';
-                    card.innerHTML = `
-                        <span class="entry-name">${item.name}</span>
-                        <p class="entry-text">${item.message}</p>
-                        <span class="entry-date">${item.date}</span>
-                    `;
-                    list.appendChild(card);
-                });
-            }
-        });
-    </script>
+    entries.forEach(([key, item]) => {
+        const card = document.createElement('div');
+        card.className = 'entry-card';
+        card.innerHTML = `
+            <span class="entry-name">${item.name}</span>
+            <p class="entry-text">${item.message}</p>
+            <span class="entry-date">${item.date}</span>
+            ${adminMode ? `<button onclick="deleteMessage('${key}')" style="margin-top:10px; background:#444; border:1px solid var(--gold); color:white; padding:5px; cursor:pointer;">DELETE</button>` : ''}
+        `;
+        list.appendChild(card);
+    });
+  }
+</script>
 </body>
 </html>
