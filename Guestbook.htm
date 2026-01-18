@@ -180,12 +180,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 
 <script>
-  // Global variables
-  var database;
-  var messagesRef;
-
   // 1. YOUR FIREBASE CONFIG
-  var firebaseConfig = {
+  const firebaseConfig = {
     apiKey: "YOUR_API_KEY",
     authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
     databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
@@ -195,91 +191,65 @@
     appId: "YOUR_APP_ID"
   };
 
-  // 2. INITIALIZATION WRAPPER
-  function initFirebase() {
-    if (typeof firebase !== 'undefined') {
-      if (!firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
-      }
-      database = firebase.database();
-      messagesRef = database.ref('messages');
-      setupListener();
-      console.log("Firebase Ready!");
-    } else {
-      console.log("Waiting for Firebase scripts...");
-      setTimeout(initFirebase, 500); // Try again in half a second
-    }
-  }
+  // 2. INITIALIZE
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+  const messagesRef = db.ref('messages');
 
   // 3. SUBMIT FUNCTION
-  window.addEntry = function() {
-    if (!messagesRef) {
-      alert("System still loading... give it one more second!");
-      return;
-    }
+  function addEntry() {
+    const name = document.getElementById('guestName').value;
+    const message = document.getElementById('guestMessage').value;
 
-    var name = document.getElementById('guestName').value;
-    var message = document.getElementById('guestMessage').value;
-
-    if (!name || !message) {
-      alert("The Director needs your name and message!");
-      return;
-    }
+    if (!name || !message) return alert("The Director needs your name and message!");
 
     messagesRef.push({
       name: name,
       message: message,
       date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
-    }).then(function() {
+    }).then(() => {
       document.getElementById('guestName').value = "";
       document.getElementById('guestMessage').value = "";
     });
-  };
+  }
 
-  // 4. SYNC & DELETE LOGIC
-  var adminMode = false;
-  window.toggleAdmin = function() {
+  // 4. ADMIN & REAL-TIME SYNC
+  let adminMode = false;
+  function toggleAdmin() {
     adminMode = !adminMode;
     alert("Admin Mode: " + (adminMode ? "ON" : "OFF"));
     renderMessages(window.lastData);
-  };
-
-  window.deleteMessage = function(key) {
-    if(confirm("Remove this fan review?")) {
-      database.ref('messages/' + key).remove();
-    }
-  };
-
-  function setupListener() {
-    messagesRef.on('value', function(snapshot) {
-      var data = snapshot.val();
-      window.lastData = data;
-      renderMessages(data);
-    });
   }
 
+  function deleteMessage(key) {
+    if(confirm("Remove this fan review?")) {
+      db.ref('messages/' + key).remove();
+    }
+  }
+
+  messagesRef.on('value', (snapshot) => {
+    const data = snapshot.val();
+    window.lastData = data;
+    renderMessages(data);
+  });
+
   function renderMessages(data) {
-    var list = document.getElementById('entriesList');
+    const list = document.getElementById('entriesList');
     list.innerHTML = ''; 
     if (!data) return;
 
-    var entries = Object.entries(data).reverse();
-    entries.forEach(function(entry) {
-      var key = entry[0];
-      var item = entry[1];
-      var card = document.createElement('div');
+    Object.entries(data).reverse().forEach(([key, item]) => {
+      const card = document.createElement('div');
       card.className = 'entry-card';
-      card.innerHTML = 
-        '<span class="entry-name">' + item.name + '</span>' +
-        '<p class="entry-text">' + item.message + '</p>' +
-        '<span class="entry-date">' + item.date + '</span>' +
-        (adminMode ? '<button onclick="deleteMessage(\'' + key + '\')" style="margin-top:10px; background:#444; border:1px solid #f1c40f; color:white; padding:5px; cursor:pointer;">DELETE</button>' : '');
+      card.innerHTML = `
+        <span class="entry-name">${item.name}</span>
+        <p class="entry-text">${item.message}</p>
+        <span class="entry-date">${item.date}</span>
+        ${adminMode ? `<button onclick="deleteMessage('${key}')" style="margin-top:10px; background:#444; color:white; border:1px solid #f1c40f; padding:5px; cursor:pointer;">DELETE</button>` : ''}
+      `;
       list.appendChild(card);
     });
   }
-
-  // Start the check
-  initFirebase();
 </script>
 
 </body>
