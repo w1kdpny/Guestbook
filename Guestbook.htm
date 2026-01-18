@@ -161,32 +161,31 @@
         <div id="entriesList" class="entries-grid"></div>
     </div>
 
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);  
-
-// PASTE YOUR FIREBASE CONFIG HERE
   const firebaseConfig = {
-  apiKey: "AIzaSyAMQJ6c64BgWdNRMNY-wtMdQoIGcE2n7-Y",
-  authDomain: "adambirthday.firebaseapp.com",
-  databaseURL: "https://adambirthday-default-rtdb.firebaseio.com",
-  projectId: "adambirthday",
-  storageBucket: "adambirthday.firebasestorage.app",
-  messagingSenderId: "52484424752",
-  appId: "1:52484424752:web:dd6401e82e9696ff6359f5",
-  measurementId: "G-G7Q35RGYMM"
+    apiKey: "AIzaSyAMQJ6c64BgWdNRMNY-wtMdQoIGcE2n7-Y",
+    authDomain: "adambirthday.firebaseapp.com",
+    databaseURL: "https://adambirthday-default-rtdb.firebaseio.com",
+    projectId: "adambirthday",
+    storageBucket: "adambirthday.firebasestorage.app",
+    messagingSenderId: "52484424752",
+    appId: "1:52484424752:web:dd6401e82e9696ff6359f5",
+    measurementId: "G-G7Q35RGYMM"
   };
 
-  // Initialize Firebase
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
   const messagesRef = ref(db, 'messages');
 
-  // SUBMIT TO FIREBASE
+  // Track the count to only fire confetti on NEW messages
+  let firstLoad = true;
+  let messageCount = 0;
+
   window.addEntry = function() {
     const name = document.getElementById('guestName').value;
     const message = document.getElementById('guestMessage').value;
@@ -196,7 +195,6 @@ const analytics = getAnalytics(app);
         return;
     }
 
-    // Pushing to Firebase (Syncs to all devices instantly)
     push(messagesRef, {
         name: name,
         message: message,
@@ -207,16 +205,30 @@ const analytics = getAnalytics(app);
     document.getElementById('guestMessage').value = "";
   };
 
-  // LISTEN FOR LIVE UPDATES
   onValue(messagesRef, (snapshot) => {
     const data = snapshot.val();
     const list = document.getElementById('entriesList');
     list.innerHTML = ''; 
 
     if (data) {
-        // Convert object to array and reverse so newest is at the top
-        const entries = Object.values(data).reverse();
-        entries.forEach(item => {
+        const entries = Object.values(data);
+        
+        // TRIGGER CONFETTI: Only if this isn't the first time the page loaded
+        // and the number of messages has actually increased.
+        if (!firstLoad && entries.length > messageCount) {
+            confetti({
+                particleCount: 150,
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: ['#f1c40f', '#d40000', '#ffffff'] // Gold, Red, White to match the theme
+            });
+        }
+        
+        messageCount = entries.length;
+        firstLoad = false;
+
+        // Display entries in reverse order (newest first)
+        entries.reverse().forEach(item => {
             const card = document.createElement('div');
             card.className = 'entry-card';
             card.innerHTML = `
@@ -229,5 +241,6 @@ const analytics = getAnalytics(app);
     }
   });
 </script>
+
 </body>
 </html>
