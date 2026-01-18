@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adam's 17th Birthday Premiere</title>
+    <style>
+        :root {
+            --cinema-red: #d40000;
+            --gold: #f1c40f;
+            --dark-bg: #0d0d0d;
+            --card-bg: #1a1a1a;
+            --input-bg: #2a2a2a;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--dark-bg);
+            color: white;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        h1 { 
+            color: var(--gold); 
+            text-transform: uppercase; 
+            letter-spacing: 6px; 
+            font-size: 3rem;
+            margin: 10px 0;
+            text-shadow: 0 0 15px rgba(241, 196, 15, 0.5);
+        }
+
+        .main-stage {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 50px;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        /* Poster Section */
+        .poster-container {
+            flex: 1;
+            min-width: 320px;
+            max-width: 480px;
+        }
+
+        .poster-container img {
+            width: 100%;
+            border-radius: 12px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.8), 0 0 10px rgba(241, 196, 15, 0.2);
+            border: 4px solid #222;
+        }
+
+        /* Entry Form Section */
+        .guestbook-form {
+            flex: 1;
+            min-width: 320px;
+            background: var(--card-bg);
+            padding: 35px;
+            border-radius: 15px;
+            border: 1px solid #333;
+            height: fit-content;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .form-group { margin-bottom: 25px; }
+        label { display: block; color: var(--gold); margin-bottom: 10px; font-weight: bold; letter-spacing: 1px; }
+        
+        input, textarea {
+            width: 100%;
+            padding: 14px;
+            background: var(--input-bg);
+            border: 1px solid #444;
+            color: white;
+            border-radius: 8px;
+            font-size: 1rem;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        input:focus, textarea:focus { border-color: var(--gold); }
+
+        button {
+            background-color: var(--cinema-red);
+            color: white;
+            border: none;
+            padding: 18px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        button:hover { background-color: #ff0000; transform: scale(1.03); }
+
+        /* Real-Time Reviews Section */
+        #entries-section {
+            margin-top: 60px;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        .entries-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .entry-card {
+            background: #151515;
+            border: 1px solid #222;
+            padding: 25px;
+            border-radius: 12px;
+            border-top: 5px solid var(--gold);
+            animation: slideIn 0.6s ease-out;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .entry-name { color: var(--gold); font-weight: bold; font-size: 1.25rem; }
+        .entry-text { margin-top: 12px; color: #eee; line-height: 1.6; font-size: 1.05rem; }
+        .entry-date { font-size: 0.8rem; color: #555; display: block; margin-top: 20px; text-align: right; }
+
+        @keyframes slideIn { 
+            from { opacity: 0; transform: translateY(30px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+
+        @media (max-width: 600px) {
+            h1 { font-size: 2rem; }
+            .main-stage { gap: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>NOW SHOWING</h1>
+    </header>
+
+    <div class="main-stage">
+        <div class="poster-container">
+            <img src="poster.png" alt="Adam's 17th Birthday Poster">
+        </div>
+
+        <div class="guestbook-form">
+            <h2 style="color: white; margin-top: 0; margin-bottom: 25px;">Sign the Guestbook</h2>
+            <div class="form-group">
+                <label for="guestName">GUEST NAME</label>
+                <input type="text" id="guestName" placeholder="Enter your name...">
+            </div>
+            <div class="form-group">
+                <label for="guestMessage">BIRTHDAY MESSAGE</label>
+                <textarea id="guestMessage" rows="5" placeholder="Leave a review for the star..."></textarea>
+            </div>
+            <button onclick="addEntry()">SUBMIT TO PREMIERE</button>
+        </div>
+    </div>
+
+    <div id="entries-section">
+        <h2 style="color: var(--gold); text-align: center; font-size: 2.2rem; text-transform: uppercase;">Fan Reviews</h2>
+        <div id="entriesList" class="entries-grid"></div>
+    </div>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+<script>
+  // 1. YOUR FIREBASE CONFIG
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+    databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT_ID.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
+
+  // 2. INITIALIZE
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+  const messagesRef = db.ref('messages');
+
+  // 3. SUBMIT FUNCTION
+  function addEntry() {
+    const name = document.getElementById('guestName').value;
+    const message = document.getElementById('guestMessage').value;
+
+    if (!name || !message) return alert("The Director needs your name and message!");
+
+    messagesRef.push({
+      name: name,
+      message: message,
+      date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+    }).then(() => {
+      document.getElementById('guestName').value = "";
+      document.getElementById('guestMessage').value = "";
+    });
+  }
+
+  // 4. ADMIN & REAL-TIME SYNC
+  let adminMode = false;
+  function toggleAdmin() {
+    adminMode = !adminMode;
+    alert("Admin Mode: " + (adminMode ? "ON" : "OFF"));
+    renderMessages(window.lastData);
+  }
+
+  function deleteMessage(key) {
+    if(confirm("Remove this fan review?")) {
+      db.ref('messages/' + key).remove();
+    }
+  }
+
+  messagesRef.on('value', (snapshot) => {
+    const data = snapshot.val();
+    window.lastData = data;
+    renderMessages(data);
+  });
+
+  function renderMessages(data) {
+    const list = document.getElementById('entriesList');
+    list.innerHTML = ''; 
+    if (!data) return;
+
+    Object.entries(data).reverse().forEach(([key, item]) => {
+      const card = document.createElement('div');
+      card.className = 'entry-card';
+      card.innerHTML = `
+        <span class="entry-name">${item.name}</span>
+        <p class="entry-text">${item.message}</p>
+        <span class="entry-date">${item.date}</span>
+        ${adminMode ? `<button onclick="deleteMessage('${key}')" style="margin-top:10px; background:#444; color:white; border:1px solid #f1c40f; padding:5px; cursor:pointer;">DELETE</button>` : ''}
+      `;
+      list.appendChild(card);
+    });
+  }
+</script>
+
+</body>
+</html>
