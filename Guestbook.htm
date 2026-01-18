@@ -180,8 +180,11 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 
 <script>
-  // 2. YOUR FIREBASE CONFIG
-  // Replace these placeholders with your actual keys from the Firebase Console
+  // Global variables
+  var database;
+  var messagesRef;
+
+  // 1. YOUR FIREBASE CONFIG
   var firebaseConfig = {
     apiKey: "YOUR_API_KEY",
     authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
@@ -192,14 +195,29 @@
     appId: "YOUR_APP_ID"
   };
 
-  // 3. INITIALIZE (Compatibility Mode)
-  // This avoids the 'import' errors you saw earlier
-  firebase.initializeApp(firebaseConfig);
-  var db = firebase.database();
-  var messagesRef = db.ref('messages');
+  // 2. INITIALIZATION WRAPPER
+  function initFirebase() {
+    if (typeof firebase !== 'undefined') {
+      if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+      }
+      database = firebase.database();
+      messagesRef = database.ref('messages');
+      setupListener();
+      console.log("Firebase Ready!");
+    } else {
+      console.log("Waiting for Firebase scripts...");
+      setTimeout(initFirebase, 500); // Try again in half a second
+    }
+  }
 
-  // 4. SUBMIT FUNCTION (Globally accessible to your button)
+  // 3. SUBMIT FUNCTION
   window.addEntry = function() {
+    if (!messagesRef) {
+      alert("System still loading... give it one more second!");
+      return;
+    }
+
     var name = document.getElementById('guestName').value;
     var message = document.getElementById('guestMessage').value;
 
@@ -215,43 +233,37 @@
     }).then(function() {
       document.getElementById('guestName').value = "";
       document.getElementById('guestMessage').value = "";
-    }).catch(function(err) {
-      console.error("Firebase Error:", err);
-      alert("Error: " + err.message);
     });
   };
 
-  // 5. ADMIN DELETE LOGIC
+  // 4. SYNC & DELETE LOGIC
   var adminMode = false;
   window.toggleAdmin = function() {
     adminMode = !adminMode;
     alert("Admin Mode: " + (adminMode ? "ON" : "OFF"));
-    // Re-render the list with delete buttons showing
-    renderMessages(window.lastDataSnapshot);
+    renderMessages(window.lastData);
   };
 
   window.deleteMessage = function(key) {
     if(confirm("Remove this fan review?")) {
-      db.ref('messages/' + key).remove();
+      database.ref('messages/' + key).remove();
     }
   };
 
-  // 6. REAL-TIME SYNC
-  // This listener triggers automatically whenever the database changes
-  messagesRef.on('value', function(snapshot) {
-    var data = snapshot.val();
-    window.lastDataSnapshot = data; // Store for admin toggle
-    renderMessages(data);
-  });
+  function setupListener() {
+    messagesRef.on('value', function(snapshot) {
+      var data = snapshot.val();
+      window.lastData = data;
+      renderMessages(data);
+    });
+  }
 
   function renderMessages(data) {
     var list = document.getElementById('entriesList');
     list.innerHTML = ''; 
     if (!data) return;
 
-    // Convert object to array and reverse for newest-first display
     var entries = Object.entries(data).reverse();
-
     entries.forEach(function(entry) {
       var key = entry[0];
       var item = entry[1];
@@ -265,6 +277,9 @@
       list.appendChild(card);
     });
   }
+
+  // Start the check
+  initFirebase();
 </script>
 
 </body>
