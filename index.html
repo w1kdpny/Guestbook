@@ -180,6 +180,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics-compat.js"></script>
 
 <script>
   // 1. YOUR FIREBASE CONFIG
@@ -198,6 +199,9 @@ const firebaseConfig = {
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
   const messagesRef = db.ref('messages');
+  // Analytics
+  const analytics = firebase.analytics();
+  console.log("Analytics Active");
 
   // 3. SUBMIT FUNCTION
   function addEntry() {
